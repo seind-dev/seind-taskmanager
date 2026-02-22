@@ -27,5 +27,6 @@ Thumbs.db
 
 # IDE
 .vscode/
+.kiro/
 *.swp
 *.swo
