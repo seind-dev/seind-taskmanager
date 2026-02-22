@@ -66,6 +66,7 @@ export class DataStore {
       priority: dto.priority ?? 'low',
       status: 'pending',
       scope: dto.scope ?? 'personal',
+      groupId: dto.groupId,
       createdAt: now,
       updatedAt: now,
     };

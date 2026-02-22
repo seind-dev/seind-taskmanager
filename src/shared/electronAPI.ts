@@ -1,4 +1,4 @@
-import type { Task, CreateTaskDTO, Reminder, AppSettings, AuthResult } from './types';
+import type { Task, CreateTaskDTO, Reminder, AppSettings, AuthResult, Group, GroupMember } from './types';
 
 export interface ElectronAPI {
   // Auth operations
@@ -37,6 +37,14 @@ export interface ElectronAPI {
 
   // Update
   checkForUpdates(): Promise<{ status: string; version?: string }>;
+
+  // Groups
+  getGroups(): Promise<Group[]>;
+  createGroup(name: string): Promise<Group>;
+  deleteGroup(id: string): Promise<void>;
+  getGroupMembers(groupId: string): Promise<GroupMember[]>;
+  addGroupMember(groupId: string, email: string): Promise<{ success: boolean; error?: string }>;
+  removeGroupMember(groupId: string, userId: string): Promise<void>;
 
   // Notifications
   onNotification(callback: (data: AppNotification) => void): () => void;

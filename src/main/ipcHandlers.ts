@@ -4,7 +4,7 @@ import type { ReminderManager } from './reminderManager';
 import type { SupabaseSync } from './supabaseSync';
 import type { CreateTaskDTO, Reminder, Task, AppSettings, AuthResult } from '../shared/types';
 import { manualCheckForUpdates } from './updater';
-import { signUp, signIn, signOut, getSession } from './supabaseClient';
+import { signUp, signIn, signOut, getSession, supabase, getCurrentUserId } from './supabaseClient';
 
 /**
  * Registers all IPC handlers.
@@ -124,5 +124,93 @@ export function registerIpcHandlers(
   // --- Update Handler ---
   ipcMain.handle('app:checkForUpdates', async () => {
     return manualCheckForUpdates();
+  });
+
+  // --- Group Handlers ---
+
+  ipcMain.handle('group:getAll', async () => {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) { console.error('Groups fetch error:', error); return []; }
+    return (data || []).map((g: Record<string, unknown>) => ({
+      id: g.id, name: g.name, ownerId: g.owner_id, createdAt: g.created_at,
+    }));
+  });
+
+  ipcMain.handle('group:create', async (_event, name: string) => {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('groups')
+      .insert({ name, owner_id: userId })
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Add owner as member
+    await supabase.from('group_members').insert({
+      group_id: data.id, user_id: userId, role: 'owner',
+    });
+
+    return { id: data.id, name: data.name, ownerId: data.owner_id, createdAt: data.created_at };
+  });
+
+  ipcMain.handle('group:delete', async (_event, id: string) => {
+    const { error } = await supabase.from('groups').delete().eq('id', id);
+    if (error) console.error('Group delete error:', error);
+  });
+
+  ipcMain.handle('group:getMembers', async (_event, groupId: string) => {
+    const { data, error } = await supabase
+      .from('group_members')
+      .select('*')
+      .eq('group_id', groupId)
+      .order('joined_at', { ascending: true });
+    if (error) { console.error('Members fetch error:', error); return []; }
+
+    // Get emails for members
+    const members = [];
+    for (const m of data || []) {
+      const { data: userData } = await supabase.rpc('get_user_id_by_email', { lookup_email: '' });
+      // We need a different approach - store email lookup
+      members.push({
+        id: m.id, groupId: m.group_id, userId: m.user_id,
+        role: m.role, joinedAt: m.joined_at,
+      });
+    }
+    return members;
+  });
+
+  ipcMain.handle('group:addMember', async (_event, groupId: string, email: string) => {
+    // Find user by email
+    const { data: userId, error: lookupError } = await supabase
+      .rpc('get_user_id_by_email', { lookup_email: email });
+
+    if (lookupError || !userId) {
+      return { success: false, error: 'Bu e-posta ile kayıtlı kullanıcı bulunamadı' };
+    }
+
+    const { error } = await supabase.from('group_members').insert({
+      group_id: groupId, user_id: userId, role: 'member',
+    });
+
+    if (error) {
+      if (error.code === '23505') return { success: false, error: 'Bu kullanıcı zaten grupta' };
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  });
+
+  ipcMain.handle('group:removeMember', async (_event, groupId: string, userId: string) => {
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('user_id', userId);
+    if (error) console.error('Remove member error:', error);
   });
 }

@@ -44,6 +44,7 @@ export interface Task {
   tags?: string[];               // Etiketler / kategoriler
   order?: number;                // Sıralama (drag & drop)
   dueDate?: string;              // Son tarih (ISO 8601)
+  groupId?: string;              // Grup ID (grup görevi ise)
   createdAt: string;             // ISO 8601 tarih
   updatedAt: string;             // ISO 8601 tarih
 }
@@ -65,6 +66,7 @@ export interface CreateTaskDTO {
   subtasks?: SubTask[];
   tags?: string[];
   dueDate?: string;
+  groupId?: string;
 }
 
 // Auth result
@@ -75,11 +77,20 @@ export interface AuthResult {
   email?: string;
 }
 
+// Group
+export interface Group {
+  id: string;
+  name: string;
+  ownerId: string;
+  createdAt: string;
+}
 
-// Auth result
-export interface AuthResult {
-  success: boolean;
-  error?: string;
-  userId?: string;
+// Group member
+export interface GroupMember {
+  id: string;
+  groupId: string;
+  userId: string;
   email?: string;
+  role: 'owner' | 'member';
+  joinedAt: string;
 }

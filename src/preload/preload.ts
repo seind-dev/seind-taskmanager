@@ -39,6 +39,14 @@ const api: ElectronAPI = {
   // Update
   checkForUpdates: () => ipcRenderer.invoke('app:checkForUpdates'),
 
+  // Groups
+  getGroups: () => ipcRenderer.invoke('group:getAll'),
+  createGroup: (name) => ipcRenderer.invoke('group:create', name),
+  deleteGroup: (id) => ipcRenderer.invoke('group:delete', id),
+  getGroupMembers: (groupId) => ipcRenderer.invoke('group:getMembers', groupId),
+  addGroupMember: (groupId, email) => ipcRenderer.invoke('group:addMember', groupId, email),
+  removeGroupMember: (groupId, userId) => ipcRenderer.invoke('group:removeMember', groupId, userId),
+
   // Notifications
   onNotification: (callback: (data: { id: string; title: string; body: string; priority: string; type: string }) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: { id: string; title: string; body: string; priority: string; type: string }) => callback(data);

@@ -20,6 +20,7 @@ interface SupabaseTaskRow {
   due_date: string | null;
   reminder: Task['reminder'] | null;
   order: number;
+  group_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +38,7 @@ function rowToTask(row: SupabaseTaskRow): Task {
     dueDate: row.due_date ?? undefined,
     reminder: row.reminder ?? undefined,
     order: row.order,
+    groupId: row.group_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -55,6 +57,7 @@ function taskToRow(task: Partial<Task> & { id?: string }) {
   if (task.dueDate !== undefined) row.due_date = task.dueDate || null;
   if (task.reminder !== undefined) row.reminder = task.reminder || null;
   if (task.order !== undefined) row.order = task.order;
+  if (task.groupId !== undefined) row.group_id = task.groupId || null;
   return row;
 }
 
@@ -124,6 +127,7 @@ export class SupabaseSync {
       created_at: localTask.createdAt,
       updated_at: localTask.updatedAt,
       user_id: userId,
+      group_id: localTask.groupId || null,
     };
     const { error } = await supabase.from('tasks').insert(row);
     if (error) console.error('Supabase insert error:', error);

@@ -1,6 +1,6 @@
 {
   "name": "task-reminder-app",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Kişisel görev yönetimi masaüstü uygulaması",
   "main": "./dist/main/main.js",
   "scripts": {

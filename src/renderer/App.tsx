@@ -10,6 +10,7 @@ const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const CalendarPage = React.lazy(() => import('./pages/CalendarPage'));
 const KanbanPage = React.lazy(() => import('./pages/KanbanPage'));
+const GroupsPage = React.lazy(() => import('./pages/GroupsPage'));
 
 /* ── Titlebar Icons ── */
 
@@ -94,6 +95,18 @@ function IconPlus({ active }: { active: boolean }) {
       <rect x="3" y="3" width="14" height="14" rx="3" stroke="currentColor" strokeWidth="1.5"
         fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0} />
       <path d="M10 7v6M7 10h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconGroups({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0} />
+      <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.5"
+        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0} />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -183,6 +196,7 @@ const navItems: { page: Page; label: string; icon: (active: boolean) => React.Re
   { page: 'list', label: 'Görevler', icon: (a) => <IconTasks active={a} /> },
   { page: 'kanban', label: 'Kanban', icon: (a) => <IconKanban active={a} /> },
   { page: 'calendar', label: 'Takvim', icon: (a) => <IconCalendar active={a} /> },
+  { page: 'groups', label: 'Gruplar', icon: (a) => <IconGroups active={a} /> },
   { page: 'form', label: 'Yeni Görev', icon: (a) => <IconPlus active={a} /> },
   { page: 'settings', label: 'Ayarlar', icon: (a) => <IconSettings active={a} /> },
 ];
@@ -250,6 +264,7 @@ function App(): React.ReactElement {
       case 'dashboard': return <DashboardPage />;
       case 'calendar': return <CalendarPage />;
       case 'kanban': return <KanbanPage />;
+      case 'groups': return <GroupsPage />;
     }
   };
 
