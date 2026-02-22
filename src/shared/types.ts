@@ -66,3 +66,20 @@ export interface CreateTaskDTO {
   tags?: string[];
   dueDate?: string;
 }
+
+// Auth result
+export interface AuthResult {
+  success: boolean;
+  error?: string;
+  userId?: string;
+  email?: string;
+}
+
+
+// Auth result
+export interface AuthResult {
+  success: boolean;
+  error?: string;
+  userId?: string;
+  email?: string;
+}

@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase, getCurrentUserId } from './supabaseClient';
 import type { DataStore } from './dataStore';
 import type { Task, CreateTaskDTO, SubTask } from '../shared/types';
 
@@ -65,12 +65,11 @@ export class SupabaseSync {
     this.dataStore = dataStore;
   }
 
-  /** Pull shared tasks from Supabase and merge with local personal tasks */
+  /** Pull tasks from Supabase — RLS handles visibility */
   async pullTasks(): Promise<Task[]> {
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
-      .eq('scope', 'shared')
       .order('order', { ascending: true })
       .order('created_at', { ascending: false });
 
@@ -79,14 +78,9 @@ export class SupabaseSync {
       return this.dataStore.getTasks();
     }
 
-    const sharedTasks = (data as SupabaseTaskRow[]).map(rowToTask);
-    // Get local personal tasks
-    const localTasks = this.dataStore.getTasks();
-    const personalTasks = localTasks.filter((t) => t.scope === 'personal');
-    // Merge: personal (local) + shared (supabase)
-    const merged = [...personalTasks, ...sharedTasks];
-    this.dataStore.setTasks(merged);
-    return merged;
+    const tasks = (data as SupabaseTaskRow[]).map(rowToTask);
+    this.dataStore.setTasks(tasks);
+    return tasks;
   }
 
   /** Get all tasks — try Supabase first, fallback to local */
@@ -110,70 +104,59 @@ export class SupabaseSync {
     return rowToTask(data as SupabaseTaskRow);
   }
 
-  /** Add task — push to Supabase only if shared */
+  /** Add task — always push to Supabase with user_id */
   async addTask(dto: CreateTaskDTO): Promise<Task> {
     const localTask = this.dataStore.addTask(dto);
+    const userId = await getCurrentUserId();
 
-    if (localTask.scope === 'shared') {
-      const row = {
-        id: localTask.id,
-        title: localTask.title,
-        description: localTask.description || null,
-        priority: localTask.priority,
-        status: localTask.status,
-        scope: localTask.scope,
-        tags: localTask.tags || [],
-        subtasks: localTask.subtasks || [],
-        due_date: localTask.dueDate || null,
-        reminder: localTask.reminder || null,
-        order: localTask.order || 0,
-        created_at: localTask.createdAt,
-        updated_at: localTask.updatedAt,
-      };
-      const { error } = await supabase.from('tasks').insert(row);
-      if (error) console.error('Supabase insert error:', error);
-    }
+    const row = {
+      id: localTask.id,
+      title: localTask.title,
+      description: localTask.description || null,
+      priority: localTask.priority,
+      status: localTask.status,
+      scope: localTask.scope,
+      tags: localTask.tags || [],
+      subtasks: localTask.subtasks || [],
+      due_date: localTask.dueDate || null,
+      reminder: localTask.reminder || null,
+      order: localTask.order || 0,
+      created_at: localTask.createdAt,
+      updated_at: localTask.updatedAt,
+      user_id: userId,
+    };
+    const { error } = await supabase.from('tasks').insert(row);
+    if (error) console.error('Supabase insert error:', error);
 
     return localTask;
   }
 
-  /** Update task in Supabase + local — only sync shared tasks */
+  /** Update task in Supabase + local */
   async updateTask(id: string, updates: Partial<Task>): Promise<Task> {
     const updated = this.dataStore.updateTask(id, updates);
 
-    if (updated.scope === 'shared') {
-      const row = taskToRow(updates);
-      row.updated_at = updated.updatedAt;
-      const { error } = await supabase.from('tasks').update(row).eq('id', id);
-      if (error) console.error('Supabase update error:', error);
-    }
+    const row = taskToRow(updates);
+    row.updated_at = updated.updatedAt;
+    const { error } = await supabase.from('tasks').update(row).eq('id', id);
+    if (error) console.error('Supabase update error:', error);
 
     return updated;
   }
 
-  /** Delete task from Supabase + local — only delete from Supabase if shared */
+  /** Delete task from Supabase + local */
   async deleteTask(id: string): Promise<void> {
-    const task = this.dataStore.getTask(id);
-    const isShared = task?.scope === 'shared';
-
     this.dataStore.deleteTask(id);
 
-    if (isShared) {
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
-      if (error) console.error('Supabase delete error:', error);
-    }
+    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    if (error) console.error('Supabase delete error:', error);
   }
 
-  /** Reorder tasks in Supabase + local — only sync shared task orders */
+  /** Reorder tasks in Supabase + local */
   async reorderTasks(orderedIds: string[]): Promise<void> {
     this.dataStore.reorderTasks(orderedIds);
 
-    // Only update order for shared tasks in Supabase
-    const allTasks = this.dataStore.getTasks();
-    const sharedIds = new Set(allTasks.filter((t) => t.scope === 'shared').map((t) => t.id));
     const updates = orderedIds
       .map((id, i) => ({ id, order: i }))
-      .filter(({ id }) => sharedIds.has(id))
       .map(({ id, order }) => supabase.from('tasks').update({ order }).eq('id', id));
 
     if (updates.length > 0) await Promise.allSettled(updates);

@@ -2,6 +2,7 @@ import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useTaskStore } from './store/taskStore';
 import ToastContainer from './components/ToastContainer';
 import type { Page } from './store/taskStore';
+import LoginPage from './pages/LoginPage';
 
 const TaskListPage = React.lazy(() => import('./pages/TaskListPage'));
 const TaskFormPage = React.lazy(() => import('./pages/TaskFormPage'));
@@ -192,12 +193,21 @@ function App(): React.ReactElement {
   const { theme, currentPage, tasks, loadTasks, navigateTo, openCreateForm } = useTaskStore();
   const [mounted, setMounted] = useState(false);
   const [appVersion, setAppVersion] = useState('');
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+
+  // Check session on mount
+  useEffect(() => {
+    window.api.getSession().then((session) => {
+      setAuthenticated(!!session);
+    }).catch(() => setAuthenticated(false));
+  }, []);
 
   useEffect(() => {
+    if (!authenticated) return;
     loadTasks();
     setMounted(true);
     window.api.getVersion().then(setAppVersion).catch(() => {});
-  }, [loadTasks]);
+  }, [loadTasks, authenticated]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -242,6 +252,20 @@ function App(): React.ReactElement {
       case 'kanban': return <KanbanPage />;
     }
   };
+
+  // Loading state
+  if (authenticated === null) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-950">
+        <div className="w-8 h-8 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Not authenticated — show login
+  if (!authenticated) {
+    return <LoginPage onAuth={() => setAuthenticated(true)} />;
+  }
 
   return (
     <div className={`h-screen flex flex-col overflow-hidden ${mounted ? '' : 'opacity-0'} transition-opacity duration-300`}>

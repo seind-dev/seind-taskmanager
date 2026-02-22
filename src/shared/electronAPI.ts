@@ -1,6 +1,12 @@
-import type { Task, CreateTaskDTO, Reminder, AppSettings } from './types';
+import type { Task, CreateTaskDTO, Reminder, AppSettings, AuthResult } from './types';
 
 export interface ElectronAPI {
+  // Auth operations
+  signUp(email: string, password: string): Promise<AuthResult>;
+  signIn(email: string, password: string): Promise<AuthResult>;
+  signOut(): Promise<void>;
+  getSession(): Promise<{ userId: string; email: string } | null>;
+
   // Task operations
   getTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task | undefined>;

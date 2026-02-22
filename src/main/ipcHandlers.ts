@@ -2,8 +2,9 @@ import { app, ipcMain } from 'electron';
 import type { DataStore } from './dataStore';
 import type { ReminderManager } from './reminderManager';
 import type { SupabaseSync } from './supabaseSync';
-import type { CreateTaskDTO, Reminder, Task, AppSettings } from '../shared/types';
+import type { CreateTaskDTO, Reminder, Task, AppSettings, AuthResult } from '../shared/types';
 import { manualCheckForUpdates } from './updater';
+import { signUp, signIn, signOut, getSession } from './supabaseClient';
 
 /**
  * Registers all IPC handlers.
@@ -15,6 +16,36 @@ export function registerIpcHandlers(
   reminderManager: ReminderManager,
   sync?: SupabaseSync,
 ): void {
+  // --- Auth Handlers ---
+
+  ipcMain.handle('auth:signUp', async (_event, email: string, password: string): Promise<AuthResult> => {
+    try {
+      const data = await signUp(email, password);
+      return { success: true, userId: data.user?.id, email: data.user?.email ?? undefined };
+    } catch (err: unknown) {
+      return { success: false, error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle('auth:signIn', async (_event, email: string, password: string): Promise<AuthResult> => {
+    try {
+      const data = await signIn(email, password);
+      return { success: true, userId: data.user?.id, email: data.user?.email ?? undefined };
+    } catch (err: unknown) {
+      return { success: false, error: (err as Error).message };
+    }
+  });
+
+  ipcMain.handle('auth:signOut', async (): Promise<void> => {
+    await signOut();
+  });
+
+  ipcMain.handle('auth:getSession', async (): Promise<{ userId: string; email: string } | null> => {
+    const session = await getSession();
+    if (!session) return null;
+    return { userId: session.user.id, email: session.user.email ?? '' };
+  });
+
   // --- Task Handlers (via Supabase sync if available) ---
 
   ipcMain.handle('task:getAll', async (): Promise<Task[]> => {

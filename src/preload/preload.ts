@@ -2,6 +2,12 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { ElectronAPI } from '../shared/electronAPI';
 
 const api: ElectronAPI = {
+  // Auth operations
+  signUp: (email, password) => ipcRenderer.invoke('auth:signUp', email, password),
+  signIn: (email, password) => ipcRenderer.invoke('auth:signIn', email, password),
+  signOut: () => ipcRenderer.invoke('auth:signOut'),
+  getSession: () => ipcRenderer.invoke('auth:getSession'),
+
   // Task operations
   getTasks: () => ipcRenderer.invoke('task:getAll'),
   getTask: (id) => ipcRenderer.invoke('task:get', id),
