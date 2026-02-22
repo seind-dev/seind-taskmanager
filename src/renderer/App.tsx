@@ -223,6 +223,7 @@ function App(): React.ReactElement {
   const [appVersion, setAppVersion] = useState('');
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   // Check session on mount
   useEffect(() => {
@@ -236,6 +237,10 @@ function App(): React.ReactElement {
     loadTasks();
     setMounted(true);
     window.api.getVersion().then(setAppVersion).catch(() => {});
+    // Load unread notification count
+    window.api.getNotificationHistory().then((notifs) => {
+      setUnreadNotifCount(notifs.filter((n) => !n.read).length);
+    }).catch(() => {});
   }, [loadTasks, authenticated]);
 
   useEffect(() => {
@@ -266,6 +271,7 @@ function App(): React.ReactElement {
   const handleNavClick = (page: Page) => {
     if (page === 'form') openCreateForm();
     else navigateTo(page);
+    if (page === 'notifications') setUnreadNotifCount(0);
   };
 
   const pendingCount = tasks.filter((t) => t.status === 'pending').length;
@@ -334,6 +340,9 @@ function App(): React.ReactElement {
                 >
                   {icon(isActive)}
                   {label}
+                  {page === 'notifications' && unreadNotifCount > 0 && (
+                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-red-500 text-white font-bold min-w-[18px] text-center">{unreadNotifCount > 9 ? '9+' : unreadNotifCount}</span>
+                  )}
                 </button>
               );
             })}

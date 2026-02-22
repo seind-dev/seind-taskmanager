@@ -118,11 +118,43 @@ export function registerIpcHandlers(
     if (task.reminder?.enabled) {
       reminderManager.scheduleReminder(task.id, task.reminder);
     }
+    // Log activity for new task
+    const userId = await getCurrentUserId();
+    if (userId && task.scope === 'shared') {
+      await supabase.from('task_activity').insert({
+        task_id: task.id, user_id: userId, action: 'created', details: task.title,
+      }).then(() => {}).catch(() => {});
+    }
     return task;
   });
 
   ipcMain.handle('task:update', async (_event, id: string, updates: Partial<Task>): Promise<Task> => {
+    // Get old task for comparison
+    const oldTask = sync ? await sync.getTask(id) : dataStore.getTask(id);
     const updated = sync ? await sync.updateTask(id, updates) : dataStore.updateTask(id, updates);
+
+    // Log activity for shared tasks
+    const userId = await getCurrentUserId();
+    if (userId && updated.scope === 'shared') {
+      const activities: { action: string; details?: string }[] = [];
+      if (updates.status && oldTask && updates.status !== oldTask.status) {
+        activities.push({ action: 'status_changed', details: `${oldTask.status} → ${updates.status}` });
+      }
+      if (updates.assigneeId && (!oldTask || updates.assigneeId !== oldTask.assigneeId)) {
+        activities.push({ action: 'assigned', details: updates.assigneeId });
+      }
+      if (updates.title && oldTask && updates.title !== oldTask.title) {
+        activities.push({ action: 'updated', details: 'Başlık değiştirildi' });
+      }
+      if (updates.priority && oldTask && updates.priority !== oldTask.priority) {
+        activities.push({ action: 'updated', details: `Öncelik: ${updates.priority}` });
+      }
+      for (const act of activities) {
+        await supabase.from('task_activity').insert({
+          task_id: id, user_id: userId, action: act.action, details: act.details,
+        }).then(() => {}).catch(() => {});
+      }
+    }
     if (updates.reminder !== undefined) {
       if (updated.reminder?.enabled) {
         reminderManager.scheduleReminder(id, updated.reminder);
