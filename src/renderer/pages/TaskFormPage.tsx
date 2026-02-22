@@ -66,7 +66,7 @@ export default function TaskFormPage(): React.ReactElement {
 
   // Load comments and activity for editing task
   useEffect(() => {
-    if (editingTask && editingTask.scope === 'shared') {
+    if (editingTask) {
       window.api.getComments(editingTask.id).then(setComments).catch(() => {});
       window.api.getActivity(editingTask.id).then(setActivities).catch(() => {});
     }
@@ -400,8 +400,8 @@ export default function TaskFormPage(): React.ReactElement {
             ) : (isEditMode ? '✓ Güncelle' : '+ Oluştur')}
           </button>
 
-          {/* Comments Section (only for shared tasks in edit mode) */}
-          {isEditMode && editingTask?.scope === 'shared' && (
+          {/* Comments Section (edit mode) */}
+          {isEditMode && (
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                 💬 Yorumlar <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400">{comments.length}</span>
@@ -467,8 +467,8 @@ export default function TaskFormPage(): React.ReactElement {
             </div>
           )}
 
-          {/* Activity Section (only for shared tasks in edit mode) */}
-          {isEditMode && editingTask?.scope === 'shared' && activities.length > 0 && (
+          {/* Activity Section (edit mode) */}
+          {isEditMode && activities.length > 0 && (
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                 📋 Aktivite Geçmişi

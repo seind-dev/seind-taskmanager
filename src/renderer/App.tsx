@@ -241,6 +241,11 @@ function App(): React.ReactElement {
     window.api.getNotificationHistory().then((notifs) => {
       setUnreadNotifCount(notifs.filter((n) => !n.read).length);
     }).catch(() => {});
+    // Listen for new notifications to update badge
+    const unsub = window.api.onNotification(() => {
+      setUnreadNotifCount((c) => c + 1);
+    });
+    return () => { unsub(); };
   }, [loadTasks, authenticated]);
 
   useEffect(() => {
