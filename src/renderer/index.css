@@ -1,0 +1,163 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.4);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.6);
+}
+
+/* Smooth page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+/* Task card hover lift */
+.task-card {
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.task-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dark .task-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Sidebar gradient */
+.sidebar-gradient {
+  background: linear-gradient(180deg, #111827 0%, #030712 100%);
+}
+
+.sidebar-gradient.light {
+  background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+/* Glass card effect for dark mode */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Priority indicator pulse for high priority */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.priority-pulse {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+/* Stagger children animation */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 280ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 320ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 360ms; }
+
+/* Toggle switch */
+.toggle-switch {
+  transition: background-color 200ms ease;
+}
+
+.toggle-switch .toggle-knob {
+  transition: transform 200ms ease;
+}
+
+/* Input focus ring */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+}
+
+/* Prevent text selection on UI elements */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Smooth color transitions for theme switching */
+body, .theme-transition, .theme-transition * {
+  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
+}
+
+/* Keyboard shortcut badge */
+.kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  background: rgba(156, 163, 175, 0.15);
+  border: 1px solid rgba(156, 163, 175, 0.2);
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+/* Markdown prose overrides */
+.prose h1, .prose h2, .prose h3 { margin-top: 0.5em; margin-bottom: 0.25em; }
+.prose p { margin-top: 0.25em; margin-bottom: 0.25em; }
+.prose ul, .prose ol { margin-top: 0.25em; margin-bottom: 0.25em; padding-left: 1.25em; }
+.prose code { font-size: 0.85em; padding: 1px 4px; border-radius: 3px; background: rgba(156, 163, 175, 0.15); }
+.prose pre { padding: 0.5em; border-radius: 6px; background: rgba(0, 0, 0, 0.05); overflow-x: auto; }
+.dark .prose pre { background: rgba(255, 255, 255, 0.05); }
+.prose blockquote { border-left: 3px solid rgba(156, 163, 175, 0.5); padding-left: 0.75em; margin: 0.5em 0; }
+.prose a { color: #9ca3af; text-decoration: underline; }
+.prose table { border-collapse: collapse; width: 100%; }
+.prose th, .prose td { border: 1px solid rgba(156, 163, 175, 0.3); padding: 4px 8px; text-align: left; font-size: 0.85em; }
+
+/* Drag over indicator */
+.drag-over {
+  box-shadow: inset 0 0 0 2px rgba(107, 114, 128, 0.5);
+}
