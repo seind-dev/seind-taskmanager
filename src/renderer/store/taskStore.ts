@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Task, CreateTaskDTO, PriorityFilter, Theme } from '../../shared/types';
 
-export type Page = 'list' | 'form' | 'settings' | 'dashboard' | 'calendar' | 'kanban' | 'groups';
+export type Page = 'list' | 'form' | 'settings' | 'dashboard' | 'calendar' | 'kanban' | 'groups' | 'notifications';
 
 interface TaskStore {
   tasks: Task[];

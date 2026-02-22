@@ -1,5 +1,6 @@
 import { BrowserWindow, screen } from 'electron';
 import { join } from 'path';
+import Store from 'electron-store';
 
 interface NotificationData {
   id: string;
@@ -8,6 +9,8 @@ interface NotificationData {
   priority: string;
   type: string;
 }
+
+const notifStore = new Store({ name: 'notification-history' });
 
 const NOTIFICATION_WIDTH = 360;
 const NOTIFICATION_HEIGHT = 100;
@@ -21,6 +24,21 @@ let activeWindows: BrowserWindow[] = [];
  * Creates a frameless, transparent, always-on-top window.
  */
 export function showOverlayNotification(data: NotificationData): void {
+  // Save to notification history
+  const history = (notifStore.get('history') as Array<Record<string, unknown>>) || [];
+  history.unshift({
+    id: data.id,
+    title: data.title,
+    body: data.body,
+    priority: data.priority,
+    type: data.type,
+    timestamp: new Date().toISOString(),
+    read: false,
+  });
+  // Keep last 100 notifications
+  if (history.length > 100) history.length = 100;
+  notifStore.set('history', history);
+
   const display = screen.getPrimaryDisplay();
   const { width: screenW, height: screenH } = display.workAreaSize;
 

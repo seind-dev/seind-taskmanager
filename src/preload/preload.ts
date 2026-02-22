@@ -15,6 +15,14 @@ const api: ElectronAPI = {
   deleteTask: (id) => ipcRenderer.invoke('task:delete', id),
   reorderTasks: (orderedIds) => ipcRenderer.invoke('task:reorder', orderedIds),
 
+  // Comment operations
+  getComments: (taskId) => ipcRenderer.invoke('comment:getAll', taskId),
+  addComment: (taskId, content) => ipcRenderer.invoke('comment:add', taskId, content),
+  deleteComment: (commentId) => ipcRenderer.invoke('comment:delete', commentId),
+
+  // Activity operations
+  getActivity: (taskId) => ipcRenderer.invoke('activity:getAll', taskId),
+
   // Reminder operations
   setReminder: (taskId, reminder) => ipcRenderer.invoke('reminder:set', taskId, reminder),
   cancelReminder: (taskId) => ipcRenderer.invoke('reminder:cancel', taskId),
@@ -45,6 +53,11 @@ const api: ElectronAPI = {
   getGroupMembers: (groupId) => ipcRenderer.invoke('group:getMembers', groupId),
   addGroupMember: (groupId, email) => ipcRenderer.invoke('group:addMember', groupId, email),
   removeGroupMember: (groupId, userId) => ipcRenderer.invoke('group:removeMember', groupId, userId),
+
+  // Notification history
+  getNotificationHistory: () => ipcRenderer.invoke('notification:getHistory'),
+  markNotificationRead: (id) => ipcRenderer.invoke('notification:markRead', id),
+  clearNotificationHistory: () => ipcRenderer.invoke('notification:clearHistory'),
 
   // Notifications
   onNotification: (callback: (data: { id: string; title: string; body: string; priority: string; type: string }) => void) => {

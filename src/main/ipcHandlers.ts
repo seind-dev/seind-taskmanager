@@ -1,10 +1,13 @@
 import { app, ipcMain, BrowserWindow } from 'electron';
+import Store from 'electron-store';
 import type { DataStore } from './dataStore';
 import type { ReminderManager } from './reminderManager';
 import type { SupabaseSync } from './supabaseSync';
-import type { CreateTaskDTO, Reminder, Task, AppSettings, AuthResult } from '../shared/types';
+import type { CreateTaskDTO, Reminder, Task, AppSettings, AuthResult, NotificationHistoryItem } from '../shared/types';
 import { manualCheckForUpdates } from './updater';
 import { signOut, getSession, supabase, getCurrentUserId, getDiscordOAuthUrl, setSessionFromTokens } from './supabaseClient';
+
+const notifStore = new Store({ name: 'notification-history' });
 
 /**
  * Registers all IPC handlers.
@@ -279,5 +282,120 @@ export function registerIpcHandlers(
       .eq('group_id', groupId)
       .eq('user_id', userId);
     if (error) console.error('Remove member error:', error);
+  });
+
+  // --- Comment Handlers ---
+
+  ipcMain.handle('comment:getAll', async (_event, taskId: string) => {
+    const { data, error } = await supabase
+      .from('task_comments')
+      .select('*')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: true });
+    if (error) { console.error('Comments fetch error:', error); return []; }
+
+    const comments = [];
+    for (const c of data || []) {
+      let discordName = '';
+      let avatarUrl = '';
+      try {
+        const { data: info } = await supabase.rpc('get_user_discord_info', { uid: c.user_id });
+        if (info && info.length > 0) {
+          discordName = info[0].discord_name || '';
+          avatarUrl = info[0].avatar_url || '';
+        }
+      } catch { /* ignore */ }
+      comments.push({
+        id: c.id, taskId: c.task_id, userId: c.user_id,
+        content: c.content, createdAt: c.created_at,
+        discordName, avatarUrl,
+      });
+    }
+    return comments;
+  });
+
+  ipcMain.handle('comment:add', async (_event, taskId: string, content: string) => {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('task_comments')
+      .insert({ task_id: taskId, user_id: userId, content })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    // Log activity
+    await supabase.from('task_activity').insert({
+      task_id: taskId, user_id: userId, action: 'commented', details: content.slice(0, 100),
+    });
+
+    let discordName = '';
+    let avatarUrl = '';
+    try {
+      const { data: info } = await supabase.rpc('get_user_discord_info', { uid: userId });
+      if (info && info.length > 0) {
+        discordName = info[0].discord_name || '';
+        avatarUrl = info[0].avatar_url || '';
+      }
+    } catch { /* ignore */ }
+
+    return {
+      id: data.id, taskId: data.task_id, userId: data.user_id,
+      content: data.content, createdAt: data.created_at,
+      discordName, avatarUrl,
+    };
+  });
+
+  ipcMain.handle('comment:delete', async (_event, commentId: string) => {
+    const { error } = await supabase.from('task_comments').delete().eq('id', commentId);
+    if (error) console.error('Comment delete error:', error);
+  });
+
+  // --- Activity Handlers ---
+
+  ipcMain.handle('activity:getAll', async (_event, taskId: string) => {
+    const { data, error } = await supabase
+      .from('task_activity')
+      .select('*')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) { console.error('Activity fetch error:', error); return []; }
+
+    const activities = [];
+    for (const a of data || []) {
+      let discordName = '';
+      let avatarUrl = '';
+      try {
+        const { data: info } = await supabase.rpc('get_user_discord_info', { uid: a.user_id });
+        if (info && info.length > 0) {
+          discordName = info[0].discord_name || '';
+          avatarUrl = info[0].avatar_url || '';
+        }
+      } catch { /* ignore */ }
+      activities.push({
+        id: a.id, taskId: a.task_id, userId: a.user_id,
+        action: a.action, details: a.details, createdAt: a.created_at,
+        discordName, avatarUrl,
+      });
+    }
+    return activities;
+  });
+
+  // --- Notification History Handlers ---
+
+  ipcMain.handle('notification:getHistory', () => {
+    return (notifStore.get('history') as NotificationHistoryItem[]) || [];
+  });
+
+  ipcMain.handle('notification:markRead', (_event, id: string) => {
+    const history = (notifStore.get('history') as NotificationHistoryItem[]) || [];
+    const updated = history.map((n) => n.id === id ? { ...n, read: true } : n);
+    notifStore.set('history', updated);
+  });
+
+  ipcMain.handle('notification:clearHistory', () => {
+    notifStore.set('history', []);
   });
 }

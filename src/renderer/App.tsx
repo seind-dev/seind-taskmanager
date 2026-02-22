@@ -11,6 +11,8 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const CalendarPage = React.lazy(() => import('./pages/CalendarPage'));
 const KanbanPage = React.lazy(() => import('./pages/KanbanPage'));
 const GroupsPage = React.lazy(() => import('./pages/GroupsPage'));
+const NotificationsPage = React.lazy(() => import('./pages/NotificationsPage'));
+import SearchModal from './components/SearchModal';
 
 /* ── Titlebar Icons ── */
 
@@ -122,6 +124,17 @@ function IconSettings({ active }: { active: boolean }) {
   );
 }
 
+function IconNotifications({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M10 2a5 5 0 0 0-5 5v3l-1.5 2.5a.5.5 0 0 0 .43.75h12.14a.5.5 0 0 0 .43-.75L15 10V7a5 5 0 0 0-5-5Z"
+        stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"
+        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0} />
+      <path d="M8 14a2 2 0 1 0 4 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /* ── Loading ── */
 
 function Loading(): React.ReactElement {
@@ -197,6 +210,7 @@ const navItems: { page: Page; label: string; icon: (active: boolean) => React.Re
   { page: 'kanban', label: 'Kanban', icon: (a) => <IconKanban active={a} /> },
   { page: 'calendar', label: 'Takvim', icon: (a) => <IconCalendar active={a} /> },
   { page: 'groups', label: 'Gruplar', icon: (a) => <IconGroups active={a} /> },
+  { page: 'notifications', label: 'Bildirimler', icon: (a) => <IconNotifications active={a} /> },
   { page: 'form', label: 'Yeni Görev', icon: (a) => <IconPlus active={a} /> },
   { page: 'settings', label: 'Ayarlar', icon: (a) => <IconSettings active={a} /> },
 ];
@@ -208,6 +222,7 @@ function App(): React.ReactElement {
   const [mounted, setMounted] = useState(false);
   const [appVersion, setAppVersion] = useState('');
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Check session on mount
   useEffect(() => {
@@ -238,7 +253,7 @@ function App(): React.ReactElement {
         case 'b': e.preventDefault(); navigateTo('kanban'); break;
         case 'l': e.preventDefault(); navigateTo('calendar'); break;
         case ',': e.preventDefault(); navigateTo('settings'); break;
-        case 'k': e.preventDefault(); navigateTo('list'); break;
+        case 'k': e.preventDefault(); setSearchOpen(true); break;
       }
     }
   }, [openCreateForm, navigateTo]);
@@ -265,6 +280,7 @@ function App(): React.ReactElement {
       case 'calendar': return <CalendarPage />;
       case 'kanban': return <KanbanPage />;
       case 'groups': return <GroupsPage />;
+      case 'notifications': return <NotificationsPage />;
     }
   };
 
@@ -286,6 +302,7 @@ function App(): React.ReactElement {
     <div className={`h-screen flex flex-col overflow-hidden ${mounted ? '' : 'opacity-0'} transition-opacity duration-300`}>
       <Titlebar />
       <ToastContainer />
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <nav className={`w-56 flex flex-col no-select ${theme === 'dark' ? 'sidebar-gradient' : 'sidebar-gradient light'} border-r border-gray-200 dark:border-gray-800`}>

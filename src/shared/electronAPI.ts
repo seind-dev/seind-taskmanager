@@ -1,4 +1,4 @@
-import type { Task, CreateTaskDTO, Reminder, AppSettings, AuthResult, Group, GroupMember } from './types';
+import type { Task, CreateTaskDTO, Reminder, AppSettings, AuthResult, Group, GroupMember, TaskComment, TaskActivity, NotificationHistoryItem } from './types';
 
 export interface ElectronAPI {
   // Auth operations
@@ -13,6 +13,14 @@ export interface ElectronAPI {
   updateTask(id: string, updates: Partial<Task>): Promise<Task>;
   deleteTask(id: string): Promise<void>;
   reorderTasks(orderedIds: string[]): Promise<void>;
+
+  // Comment operations
+  getComments(taskId: string): Promise<TaskComment[]>;
+  addComment(taskId: string, content: string): Promise<TaskComment>;
+  deleteComment(commentId: string): Promise<void>;
+
+  // Activity operations
+  getActivity(taskId: string): Promise<TaskActivity[]>;
 
   // Reminder operations
   setReminder(taskId: string, reminder: Reminder): Promise<void>;
@@ -44,6 +52,11 @@ export interface ElectronAPI {
   getGroupMembers(groupId: string): Promise<GroupMember[]>;
   addGroupMember(groupId: string, email: string): Promise<{ success: boolean; error?: string }>;
   removeGroupMember(groupId: string, userId: string): Promise<void>;
+
+  // Notification history
+  getNotificationHistory(): Promise<NotificationHistoryItem[]>;
+  markNotificationRead(id: string): Promise<void>;
+  clearNotificationHistory(): Promise<void>;
 
   // Notifications
   onNotification(callback: (data: AppNotification) => void): () => void;

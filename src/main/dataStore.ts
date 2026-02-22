@@ -67,6 +67,7 @@ export class DataStore {
       status: 'pending',
       scope: dto.scope ?? 'personal',
       groupId: dto.groupId,
+      assigneeId: dto.assigneeId,
       createdAt: now,
       updatedAt: now,
     };

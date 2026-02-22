@@ -45,6 +45,8 @@ export interface Task {
   order?: number;                // Sıralama (drag & drop)
   dueDate?: string;              // Son tarih (ISO 8601)
   groupId?: string;              // Grup ID (grup görevi ise)
+  assigneeId?: string;           // Atanan kullanıcı ID
+  assigneeName?: string;         // Atanan kullanıcı Discord adı
   createdAt: string;             // ISO 8601 tarih
   updatedAt: string;             // ISO 8601 tarih
 }
@@ -67,6 +69,7 @@ export interface CreateTaskDTO {
   tags?: string[];
   dueDate?: string;
   groupId?: string;
+  assigneeId?: string;
 }
 
 // Auth result
@@ -95,4 +98,38 @@ export interface GroupMember {
   avatarUrl?: string;
   role: 'owner' | 'member';
   joinedAt: string;
+}
+
+// Task comment
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+  discordName?: string;
+  avatarUrl?: string;
+}
+
+// Task activity
+export interface TaskActivity {
+  id: string;
+  taskId: string;
+  userId: string;
+  action: string;
+  details?: string;
+  createdAt: string;
+  discordName?: string;
+  avatarUrl?: string;
+}
+
+// Notification history item
+export interface NotificationHistoryItem {
+  id: string;
+  title: string;
+  body: string;
+  priority: string;
+  type: string;
+  timestamp: string;
+  read: boolean;
 }

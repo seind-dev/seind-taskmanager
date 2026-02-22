@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTaskStore } from '../store/taskStore';
-import type { Priority, RepeatInterval, SubTask, TaskScope, Group } from '../../shared/types';
+import type { Priority, RepeatInterval, SubTask, TaskScope, Group, GroupMember, TaskComment, TaskActivity } from '../../shared/types';
 
 const PRIORITY_OPTIONS: { value: Priority; label: string; emoji: string; activeClass: string }[] = [
   { value: 'high', label: 'Yüksek', emoji: '🔴', activeClass: 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-500/20' },
@@ -43,11 +43,34 @@ export default function TaskFormPage(): React.ReactElement {
   const [scope, setScope] = useState<TaskScope>('personal');
   const [groupId, setGroupId] = useState<string>('');
   const [groups, setGroups] = useState<Group[]>([]);
+  const [assigneeId, setAssigneeId] = useState<string>('');
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [comments, setComments] = useState<TaskComment[]>([]);
+  const [activities, setActivities] = useState<TaskActivity[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
   const [titleError, setTitleError] = useState('');
 
   useEffect(() => {
     window.api.getGroups().then(setGroups).catch(() => {});
   }, []);
+
+  // Load group members when group changes
+  useEffect(() => {
+    if (groupId) {
+      window.api.getGroupMembers(groupId).then(setGroupMembers).catch(() => setGroupMembers([]));
+    } else {
+      setGroupMembers([]);
+    }
+  }, [groupId]);
+
+  // Load comments and activity for editing task
+  useEffect(() => {
+    if (editingTask && editingTask.scope === 'shared') {
+      window.api.getComments(editingTask.id).then(setComments).catch(() => {});
+      window.api.getActivity(editingTask.id).then(setActivities).catch(() => {});
+    }
+  }, [editingTask]);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -61,6 +84,7 @@ export default function TaskFormPage(): React.ReactElement {
       setSubtasks(editingTask.subtasks ?? []);
       setScope(editingTask.scope ?? 'personal');
       setGroupId(editingTask.groupId ?? '');
+      setAssigneeId(editingTask.assigneeId ?? '');
       if (editingTask.reminder) {
         setReminderEnabled(true);
         const dt = new Date(editingTask.reminder.dateTime);
@@ -115,6 +139,7 @@ export default function TaskFormPage(): React.ReactElement {
           priority,
           scope,
           groupId: groupId || undefined,
+          assigneeId: assigneeId || undefined,
           dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
           tags: tags.length > 0 ? tags : undefined,
           subtasks: subtasks.length > 0 ? subtasks : undefined,
@@ -128,6 +153,7 @@ export default function TaskFormPage(): React.ReactElement {
           priority,
           scope,
           groupId: scope === 'shared' && groupId ? groupId : undefined,
+          assigneeId: scope === 'shared' && assigneeId ? assigneeId : undefined,
           dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
           tags: tags.length > 0 ? tags : undefined,
           subtasks: subtasks.length > 0 ? subtasks : undefined,
@@ -254,6 +280,20 @@ export default function TaskFormPage(): React.ReactElement {
             </div>
           )}
 
+          {/* Assignee Selector (only when scope is shared and group selected) */}
+          {scope === 'shared' && groupId && groupMembers.length > 0 && (
+            <div>
+              <label htmlFor="task-assignee" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Atanan Kişi</label>
+              <select id="task-assignee" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-sm bg-white dark:bg-gray-900 focus:ring-2 focus:ring-gray-500/30 focus:border-gray-500 transition-all">
+                <option value="">Kimseye atanmadı</option>
+                {groupMembers.map((m) => (
+                  <option key={m.userId} value={m.userId}>{m.discordName || m.userId.slice(0, 8)}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Tags */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Etiketler</label>
@@ -359,6 +399,93 @@ export default function TaskFormPage(): React.ReactElement {
               </span>
             ) : (isEditMode ? '✓ Güncelle' : '+ Oluştur')}
           </button>
+
+          {/* Comments Section (only for shared tasks in edit mode) */}
+          {isEditMode && editingTask?.scope === 'shared' && (
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                💬 Yorumlar <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400">{comments.length}</span>
+              </h3>
+              {/* Add comment */}
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (newComment.trim() && editingTaskId) {
+                        setCommentLoading(true);
+                        window.api.addComment(editingTaskId, newComment.trim()).then((c) => {
+                          setComments((prev) => [...prev, c]);
+                          setNewComment('');
+                        }).finally(() => setCommentLoading(false));
+                      }
+                    }
+                  }}
+                  placeholder="Yorum yaz..."
+                  className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-gray-500/30 focus:border-gray-500 transition-all"
+                />
+                <button
+                  type="button"
+                  disabled={commentLoading || !newComment.trim()}
+                  onClick={() => {
+                    if (newComment.trim() && editingTaskId) {
+                      setCommentLoading(true);
+                      window.api.addComment(editingTaskId, newComment.trim()).then((c) => {
+                        setComments((prev) => [...prev, c]);
+                        setNewComment('');
+                      }).finally(() => setCommentLoading(false));
+                    }
+                  }}
+                  className="px-3 py-2 rounded-lg text-xs font-medium bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 transition-colors"
+                >
+                  {commentLoading ? '...' : 'Gönder'}
+                </button>
+              </div>
+              {/* Comment list */}
+              <div className="space-y-2 max-h-60 overflow-auto">
+                {comments.map((c) => (
+                  <div key={c.id} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    {c.avatarUrl ? (
+                      <img src={c.avatarUrl} alt="" className="w-6 h-6 rounded-full shrink-0 mt-0.5" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{c.discordName || 'Kullanıcı'}</span>
+                        <span className="text-[10px] text-gray-400">{new Date(c.createdAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{c.content}</p>
+                    </div>
+                  </div>
+                ))}
+                {comments.length === 0 && <p className="text-xs text-gray-400 text-center py-3">Henüz yorum yok</p>}
+              </div>
+            </div>
+          )}
+
+          {/* Activity Section (only for shared tasks in edit mode) */}
+          {isEditMode && editingTask?.scope === 'shared' && activities.length > 0 && (
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                📋 Aktivite Geçmişi
+              </h3>
+              <div className="space-y-2 max-h-48 overflow-auto">
+                {activities.map((a) => (
+                  <div key={a.id} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0" />
+                    <span className="font-medium text-gray-600 dark:text-gray-300">{a.discordName || 'Kullanıcı'}</span>
+                    <span>{a.action === 'commented' ? 'yorum yaptı' : a.action === 'status_changed' ? 'durumu değiştirdi' : a.action === 'assigned' ? 'atadı' : a.action}</span>
+                    {a.details && <span className="text-gray-400 truncate max-w-[150px]">— {a.details}</span>}
+                    <span className="ml-auto text-[10px] text-gray-400 shrink-0">{new Date(a.createdAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </form>
     </div>

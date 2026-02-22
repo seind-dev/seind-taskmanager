@@ -144,6 +144,9 @@ function TaskRow({ task, onContextMenu, onStatusClick, onDragStart, onDragOver, 
 
       {/* Tags + meta */}
       <div className="flex items-center gap-2 shrink-0">
+        {task.assigneeName && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 font-medium">👤 {task.assigneeName}</span>
+        )}
         {task.scope === 'shared' && (
           <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-medium">Grup</span>
         )}

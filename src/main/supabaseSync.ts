@@ -21,6 +21,7 @@ interface SupabaseTaskRow {
   reminder: Task['reminder'] | null;
   order: number;
   group_id: string | null;
+  assignee_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +40,7 @@ function rowToTask(row: SupabaseTaskRow): Task {
     reminder: row.reminder ?? undefined,
     order: row.order,
     groupId: row.group_id ?? undefined,
+    assigneeId: row.assignee_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -58,6 +60,7 @@ function taskToRow(task: Partial<Task> & { id?: string }) {
   if (task.reminder !== undefined) row.reminder = task.reminder || null;
   if (task.order !== undefined) row.order = task.order;
   if (task.groupId !== undefined) row.group_id = task.groupId || null;
+  if (task.assigneeId !== undefined) row.assignee_id = task.assigneeId || null;
   return row;
 }
 
@@ -82,6 +85,24 @@ export class SupabaseSync {
     }
 
     const tasks = (data as SupabaseTaskRow[]).map(rowToTask);
+
+    // Resolve assignee names
+    const assigneeIds = [...new Set(tasks.filter((t) => t.assigneeId).map((t) => t.assigneeId!))];
+    const nameMap = new Map<string, string>();
+    for (const uid of assigneeIds) {
+      try {
+        const { data: info } = await supabase.rpc('get_user_discord_info', { uid });
+        if (info && info.length > 0 && info[0].discord_name) {
+          nameMap.set(uid, info[0].discord_name);
+        }
+      } catch { /* ignore */ }
+    }
+    for (const task of tasks) {
+      if (task.assigneeId && nameMap.has(task.assigneeId)) {
+        task.assigneeName = nameMap.get(task.assigneeId);
+      }
+    }
+
     this.dataStore.setTasks(tasks);
     return tasks;
   }
@@ -128,6 +149,7 @@ export class SupabaseSync {
       updated_at: localTask.updatedAt,
       user_id: userId,
       group_id: localTask.groupId || null,
+      assignee_id: localTask.assigneeId || null,
     };
     const { error } = await supabase.from('tasks').insert(row);
     if (error) console.error('Supabase insert error:', error);
