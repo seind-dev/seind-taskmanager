@@ -228,27 +228,37 @@ export function registerIpcHandlers(
       .order('joined_at', { ascending: true });
     if (error) { console.error('Members fetch error:', error); return []; }
 
-    // Get emails for members
+    // Get Discord info for each member
     const members = [];
     for (const m of data || []) {
-      const { data: userData } = await supabase.rpc('get_user_id_by_email', { lookup_email: '' });
-      // We need a different approach - store email lookup
+      let discordName = '';
+      let avatarUrl = '';
+      try {
+        const { data: info } = await supabase.rpc('get_user_discord_info', { uid: m.user_id });
+        if (info && info.length > 0) {
+          discordName = info[0].discord_name || '';
+          avatarUrl = info[0].avatar_url || '';
+        }
+      } catch { /* ignore */ }
       members.push({
         id: m.id, groupId: m.group_id, userId: m.user_id,
         role: m.role, joinedAt: m.joined_at,
+        discordName, avatarUrl,
       });
     }
     return members;
   });
 
-  ipcMain.handle('group:addMember', async (_event, groupId: string, email: string) => {
-    // Find user by email
-    const { data: userId, error: lookupError } = await supabase
-      .rpc('get_user_id_by_email', { lookup_email: email });
+  ipcMain.handle('group:addMember', async (_event, groupId: string, discordUsername: string) => {
+    // Find user by Discord username
+    const { data: userData, error: lookupError } = await supabase
+      .rpc('get_user_by_discord_name', { lookup_name: discordUsername.trim() });
 
-    if (lookupError || !userId) {
-      return { success: false, error: 'Bu e-posta ile kayıtlı kullanıcı bulunamadı' };
+    if (lookupError || !userData || userData.length === 0) {
+      return { success: false, error: 'Bu Discord kullanıcı adıyla kayıtlı kullanıcı bulunamadı' };
     }
+
+    const userId = userData[0].user_id;
 
     const { error } = await supabase.from('group_members').insert({
       group_id: groupId, user_id: userId, role: 'member',

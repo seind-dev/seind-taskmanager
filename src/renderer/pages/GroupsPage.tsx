@@ -6,7 +6,7 @@ export default function GroupsPage(): React.ReactElement {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
-  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberName, setNewMemberName] = useState('');
   const [creating, setCreating] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
@@ -39,21 +39,20 @@ export default function GroupsPage(): React.ReactElement {
       setNewGroupName('');
       setSelectedGroup(group);
     } catch (err) {
-      console.error('Group create error:', err);
       setError('Grup oluşturulamadı: ' + (err instanceof Error ? err.message : String(err)));
     }
     setCreating(false);
   };
 
   const handleAddMember = async () => {
-    if (!selectedGroup || !newMemberEmail.trim()) return;
+    if (!selectedGroup || !newMemberName.trim()) return;
     setAdding(true);
     setError('');
     setSuccess('');
-    const result = await window.api.addGroupMember(selectedGroup.id, newMemberEmail.trim());
+    const result = await window.api.addGroupMember(selectedGroup.id, newMemberName.trim());
     if (result.success) {
       setSuccess('Üye eklendi');
-      setNewMemberEmail('');
+      setNewMemberName('');
       loadMembers(selectedGroup.id);
     } else {
       setError(result.error || 'Üye eklenemedi');
@@ -100,8 +99,10 @@ export default function GroupsPage(): React.ReactElement {
             </button>
           </div>
 
-          {/* Group list */}
+          {/* Error for group creation */}
           {error && !selectedGroup && <p className="text-xs text-red-400">{error}</p>}
+
+          {/* Group list */}
           <div className="flex flex-col gap-1.5 overflow-auto">
             {groups.length === 0 && (
               <p className="text-sm text-gray-400 dark:text-gray-600 text-center py-8">Henüz grup yok</p>
@@ -148,27 +149,27 @@ export default function GroupsPage(): React.ReactElement {
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">{selectedGroup.name}</h2>
 
-              {/* Add member */}
+              {/* Add member by Discord username */}
               <div className="flex gap-2 mb-4">
                 <input
-                  type="email"
-                  placeholder="Üye e-posta adresi..."
-                  value={newMemberEmail}
-                  onChange={(e) => { setNewMemberEmail(e.target.value); setError(''); setSuccess(''); }}
+                  type="text"
+                  placeholder="Discord kullanıcı adı..."
+                  value={newMemberName}
+                  onChange={(e) => { setNewMemberName(e.target.value); setError(''); setSuccess(''); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddMember()}
                   className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
-                  aria-label="Üye e-posta adresi"
+                  aria-label="Discord kullanıcı adı"
                 />
                 <button
                   onClick={handleAddMember}
-                  disabled={adding || !newMemberEmail.trim()}
+                  disabled={adding || !newMemberName.trim()}
                   className="px-4 py-2 rounded-lg bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium hover:bg-gray-700 dark:hover:bg-gray-300 transition-colors disabled:opacity-50"
                 >
                   {adding ? '...' : 'Ekle'}
                 </button>
               </div>
 
-              {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+              {error && selectedGroup && <p className="text-xs text-red-400 mb-3">{error}</p>}
               {success && <p className="text-xs text-emerald-400 mb-3">{success}</p>}
 
               {/* Members list */}
@@ -177,12 +178,16 @@ export default function GroupsPage(): React.ReactElement {
                 {members.map((member) => (
                   <div key={member.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500 dark:text-gray-400">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{member.userId.slice(0, 8)}...</span>
+                      {member.avatarUrl ? (
+                        <img src={member.avatarUrl} alt="" className="w-7 h-7 rounded-full" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500 dark:text-gray-400">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </div>
+                      )}
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{member.discordName || member.userId.slice(0, 8) + '...'}</span>
                       {member.role === 'owner' && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium">Kurucu</span>
                       )}

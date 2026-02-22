@@ -91,6 +91,8 @@ export interface GroupMember {
   groupId: string;
   userId: string;
   email?: string;
+  discordName?: string;
+  avatarUrl?: string;
   role: 'owner' | 'member';
   joinedAt: string;
 }
