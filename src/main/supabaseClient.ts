@@ -7,14 +7,22 @@ export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON
 
 /* ── Auth helpers ── */
 
-export async function signUp(email: string, password: string) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+export async function getDiscordOAuthUrl(): Promise<string> {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'discord',
+    options: {
+      skipBrowserRedirect: true,
+    },
+  });
   if (error) throw error;
-  return data;
+  return data.url;
 }
 
-export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+export async function setSessionFromTokens(accessToken: string, refreshToken: string) {
+  const { data, error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
   if (error) throw error;
   return data;
 }

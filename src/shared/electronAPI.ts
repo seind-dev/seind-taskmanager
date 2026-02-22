@@ -2,8 +2,7 @@ import type { Task, CreateTaskDTO, Reminder, AppSettings, AuthResult, Group, Gro
 
 export interface ElectronAPI {
   // Auth operations
-  signUp(email: string, password: string): Promise<AuthResult>;
-  signIn(email: string, password: string): Promise<AuthResult>;
+  signInWithDiscord(): Promise<AuthResult>;
   signOut(): Promise<void>;
   getSession(): Promise<{ userId: string; email: string } | null>;
 

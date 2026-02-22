@@ -1,10 +1,10 @@
-import { app, ipcMain } from 'electron';
+import { app, ipcMain, BrowserWindow } from 'electron';
 import type { DataStore } from './dataStore';
 import type { ReminderManager } from './reminderManager';
 import type { SupabaseSync } from './supabaseSync';
 import type { CreateTaskDTO, Reminder, Task, AppSettings, AuthResult } from '../shared/types';
 import { manualCheckForUpdates } from './updater';
-import { signUp, signIn, signOut, getSession, supabase, getCurrentUserId } from './supabaseClient';
+import { signOut, getSession, supabase, getCurrentUserId, getDiscordOAuthUrl, setSessionFromTokens } from './supabaseClient';
 
 /**
  * Registers all IPC handlers.
@@ -18,22 +18,74 @@ export function registerIpcHandlers(
 ): void {
   // --- Auth Handlers ---
 
-  ipcMain.handle('auth:signUp', async (_event, email: string, password: string): Promise<AuthResult> => {
-    try {
-      const data = await signUp(email, password);
-      return { success: true, userId: data.user?.id, email: data.user?.email ?? undefined };
-    } catch (err: unknown) {
-      return { success: false, error: (err as Error).message };
-    }
-  });
+  ipcMain.handle('auth:signInWithDiscord', async (): Promise<AuthResult> => {
+    return new Promise((resolve) => {
+      getDiscordOAuthUrl().then((oauthUrl) => {
+        const authWindow = new BrowserWindow({
+          width: 500,
+          height: 700,
+          show: true,
+          frame: true,
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+          },
+        });
 
-  ipcMain.handle('auth:signIn', async (_event, email: string, password: string): Promise<AuthResult> => {
-    try {
-      const data = await signIn(email, password);
-      return { success: true, userId: data.user?.id, email: data.user?.email ?? undefined };
-    } catch (err: unknown) {
-      return { success: false, error: (err as Error).message };
-    }
+        authWindow.setMenuBarVisibility(false);
+
+        let resolved = false;
+
+        // Monitor URL changes to catch the callback with tokens
+        const handleNavigation = async (url: string) => {
+          if (resolved) return;
+          try {
+            // After Discord auth, Supabase redirects with hash containing tokens
+            if (url.includes('access_token=') && url.includes('refresh_token=')) {
+              const hashPart = url.includes('#') ? url.split('#')[1] : url.split('?')[1];
+              if (!hashPart) return;
+
+              const params = new URLSearchParams(hashPart);
+              const accessToken = params.get('access_token');
+              const refreshToken = params.get('refresh_token');
+
+              if (accessToken && refreshToken) {
+                resolved = true;
+                try {
+                  const data = await setSessionFromTokens(accessToken, refreshToken);
+                  authWindow.close();
+                  resolve({
+                    success: true,
+                    userId: data.user?.id,
+                    email: data.user?.email ?? undefined,
+                  });
+                } catch (err: unknown) {
+                  authWindow.close();
+                  resolve({ success: false, error: (err as Error).message });
+                }
+              }
+            }
+          } catch {
+            // ignore parse errors
+          }
+        };
+
+        authWindow.webContents.on('will-redirect', (_event, url) => handleNavigation(url));
+        authWindow.webContents.on('did-navigate', (_event, url) => handleNavigation(url));
+        authWindow.webContents.on('did-navigate-in-page', (_event, url) => handleNavigation(url));
+
+        authWindow.on('closed', () => {
+          if (!resolved) {
+            resolved = true;
+            resolve({ success: false, error: 'Pencere kapatıldı' });
+          }
+        });
+
+        authWindow.loadURL(oauthUrl);
+      }).catch((err: unknown) => {
+        resolve({ success: false, error: (err as Error).message });
+      });
+    });
   });
 
   ipcMain.handle('auth:signOut', async (): Promise<void> => {

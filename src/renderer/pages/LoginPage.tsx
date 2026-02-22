@@ -5,33 +5,18 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onAuth }: LoginPageProps): React.ReactElement {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [signUpSuccess, setSignUpSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDiscordLogin = async () => {
     setError('');
     setLoading(true);
-
     try {
-      if (isSignUp) {
-        const result = await window.api.signUp(email, password);
-        if (!result.success) {
-          setError(result.error || 'Kayıt başarısız');
-        } else {
-          setSignUpSuccess(true);
-        }
+      const result = await window.api.signInWithDiscord();
+      if (result.success) {
+        onAuth();
       } else {
-        const result = await window.api.signIn(email, password);
-        if (!result.success) {
-          setError(result.error || 'Giriş başarısız');
-        } else {
-          onAuth();
-        }
+        setError(result.error || 'Giriş başarısız');
       }
     } catch {
       setError('Bir hata oluştu');
@@ -39,30 +24,6 @@ export default function LoginPage({ onAuth }: LoginPageProps): React.ReactElemen
       setLoading(false);
     }
   };
-
-  if (signUpSuccess) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gray-950">
-        <div className="w-full max-w-sm mx-auto p-8">
-          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-              <svg width="28" height="28" viewBox="0 0 16 16" fill="none">
-                <path d="M3 8l3.5 3.5L13 5" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-100 mb-2">Kayıt Başarılı</h2>
-            <p className="text-sm text-gray-400 mb-6">E-posta adresini doğruladıktan sonra giriş yapabilirsin.</p>
-            <button
-              onClick={() => { setIsSignUp(false); setSignUpSuccess(false); }}
-              className="w-full py-2.5 rounded-xl bg-gray-800 text-gray-200 text-sm font-medium hover:bg-gray-700 transition-colors"
-            >
-              Giriş Yap
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-screen flex items-center justify-center bg-gray-950">
@@ -86,56 +47,33 @@ export default function LoginPage({ onAuth }: LoginPageProps): React.ReactElemen
             </svg>
           </div>
           <h1 className="text-xl font-bold text-gray-100">Görev Yöneticisi</h1>
-          <p className="text-sm text-gray-500 mt-1">{isSignUp ? 'Hesap oluştur' : 'Giriş yap'}</p>
+          <p className="text-sm text-gray-500 mt-1">Discord hesabınla giriş yap</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <input
-              type="email"
-              placeholder="E-posta"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-xl bg-gray-900 border border-gray-800 text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-gray-600 transition-colors"
-              aria-label="E-posta adresi"
-            />
-          </div>
-          <div>
-            <input
-              type="password"
-              placeholder="Şifre"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full px-4 py-3 rounded-xl bg-gray-900 border border-gray-800 text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-gray-600 transition-colors"
-              aria-label="Şifre"
-            />
-          </div>
+        {error && (
+          <p className="text-xs text-red-400 text-center mb-4">{error}</p>
+        )}
 
-          {error && (
-            <p className="text-xs text-red-400 text-center">{error}</p>
+        <button
+          onClick={handleDiscordLogin}
+          disabled={loading}
+          className="w-full py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
+          style={{ backgroundColor: '#5865F2', color: '#fff' }}
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Bekleniyor...
+            </span>
+          ) : (
+            <>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.947 2.418-2.157 2.418z" />
+              </svg>
+              Discord ile Giriş Yap
+            </>
           )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-gray-100 text-gray-900 text-sm font-semibold hover:bg-white transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Bekle...' : isSignUp ? 'Kayıt Ol' : 'Giriş Yap'}
-          </button>
-        </form>
-
-        <p className="text-center text-xs text-gray-600 mt-6">
-          {isSignUp ? 'Zaten hesabın var mı?' : 'Hesabın yok mu?'}{' '}
-          <button
-            onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
-            className="text-gray-400 hover:text-gray-200 transition-colors"
-          >
-            {isSignUp ? 'Giriş Yap' : 'Kayıt Ol'}
-          </button>
-        </p>
+        </button>
       </div>
     </div>
   );

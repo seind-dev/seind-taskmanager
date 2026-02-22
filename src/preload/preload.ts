@@ -3,8 +3,7 @@ import type { ElectronAPI } from '../shared/electronAPI';
 
 const api: ElectronAPI = {
   // Auth operations
-  signUp: (email, password) => ipcRenderer.invoke('auth:signUp', email, password),
-  signIn: (email, password) => ipcRenderer.invoke('auth:signIn', email, password),
+  signInWithDiscord: () => ipcRenderer.invoke('auth:signInWithDiscord'),
   signOut: () => ipcRenderer.invoke('auth:signOut'),
   getSession: () => ipcRenderer.invoke('auth:getSession'),
 
