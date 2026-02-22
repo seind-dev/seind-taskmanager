@@ -21,6 +21,9 @@ export interface ElectronAPI {
   getAutoLaunch(): Promise<boolean>;
   setAutoLaunch(enabled: boolean): Promise<void>;
 
+  // App info
+  getVersion(): Promise<string>;
+
   // Window controls
   windowMinimize(): void;
   windowMaximize(): void;

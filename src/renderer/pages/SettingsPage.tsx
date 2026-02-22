@@ -8,12 +8,14 @@ export default function SettingsPage(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'up-to-date' | 'error'>('idle');
   const [updateVersion, setUpdateVersion] = useState('');
+  const [appVersion, setAppVersion] = useState('');
 
   useEffect(() => {
     window.api.getAutoLaunch().then((enabled) => {
       setAutoLaunchState(enabled);
       setLoading(false);
     });
+    window.api.getVersion().then(setAppVersion).catch(() => {});
   }, []);
 
   const handleAutoLaunchToggle = async () => {
@@ -176,7 +178,7 @@ export default function SettingsPage(): React.ReactElement {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Görev Yöneticisi</p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">Sürüm 3.2.0</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">Sürüm {appVersion || '...'}</p>
                 </div>
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed mb-4">

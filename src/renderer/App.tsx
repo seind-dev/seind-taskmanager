@@ -191,10 +191,12 @@ const navItems: { page: Page; label: string; icon: (active: boolean) => React.Re
 function App(): React.ReactElement {
   const { theme, currentPage, tasks, loadTasks, navigateTo, openCreateForm } = useTaskStore();
   const [mounted, setMounted] = useState(false);
+  const [appVersion, setAppVersion] = useState('');
 
   useEffect(() => {
     loadTasks();
     setMounted(true);
+    window.api.getVersion().then(setAppVersion).catch(() => {});
   }, [loadTasks]);
 
   useEffect(() => {
@@ -284,7 +286,7 @@ function App(): React.ReactElement {
           <div className="border-t border-gray-200 dark:border-gray-700/50">
             <ShortcutHint />
             <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700/50">
-              <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center">v1.0</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center">v{appVersion || '...'}</p>
             </div>
           </div>
         </nav>

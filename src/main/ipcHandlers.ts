@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import type { DataStore } from './dataStore';
 import type { ReminderManager } from './reminderManager';
 import type { SupabaseSync } from './supabaseSync';
@@ -86,6 +86,9 @@ export function registerIpcHandlers(
   ipcMain.handle('app:setAutoLaunch', (_event, enabled: boolean): void => {
     dataStore.updateSettings({ autoLaunch: enabled });
   });
+
+  // --- App Info ---
+  ipcMain.handle('app:getVersion', () => app.getVersion());
 
   // --- Update Handler ---
   ipcMain.handle('app:checkForUpdates', async () => {

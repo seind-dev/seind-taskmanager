@@ -22,6 +22,9 @@ const api: ElectronAPI = {
   getAutoLaunch: () => ipcRenderer.invoke('app:getAutoLaunch'),
   setAutoLaunch: (enabled) => ipcRenderer.invoke('app:setAutoLaunch', enabled),
 
+  // App info
+  getVersion: () => ipcRenderer.invoke('app:getVersion'),
+
   // Window controls
   windowMinimize: () => ipcRenderer.send('window:minimize'),
   windowMaximize: () => ipcRenderer.send('window:maximize'),
