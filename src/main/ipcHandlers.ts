@@ -202,15 +202,15 @@ export function registerIpcHandlers(
       .select()
       .single();
     if (error) {
-      console.error('Group insert error:', error);
-      throw error;
+      console.error('Group insert error:', JSON.stringify(error));
+      throw new Error(error.message || JSON.stringify(error));
     }
 
     // Add owner as member
     const { error: memberError } = await supabase.from('group_members').insert({
       group_id: data.id, user_id: userId, role: 'owner',
     });
-    if (memberError) console.error('Group member insert error:', memberError);
+    if (memberError) console.error('Group member insert error:', JSON.stringify(memberError));
 
     return { id: data.id, name: data.name, ownerId: data.owner_id, createdAt: data.created_at };
   });
