@@ -1,9 +1,31 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import Store from 'electron-store';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
-export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Persistent storage for auth session using electron-store
+const authStore = new Store({ name: 'supabase-auth' });
+
+const customStorage = {
+  getItem: (key: string): string | null => {
+    return (authStore.get(key) as string) ?? null;
+  },
+  setItem: (key: string, value: string): void => {
+    authStore.set(key, value);
+  },
+  removeItem: (key: string): void => {
+    authStore.delete(key);
+  },
+};
+
+export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    storage: customStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+  },
+});
 
 /* ── Auth helpers ── */
 
