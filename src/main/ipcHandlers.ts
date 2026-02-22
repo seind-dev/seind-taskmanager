@@ -193,6 +193,7 @@ export function registerIpcHandlers(
 
   ipcMain.handle('group:create', async (_event, name: string) => {
     const userId = await getCurrentUserId();
+    console.log('group:create userId:', userId);
     if (!userId) throw new Error('Not authenticated');
 
     const { data, error } = await supabase
@@ -200,12 +201,16 @@ export function registerIpcHandlers(
       .insert({ name, owner_id: userId })
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      console.error('Group insert error:', error);
+      throw error;
+    }
 
     // Add owner as member
-    await supabase.from('group_members').insert({
+    const { error: memberError } = await supabase.from('group_members').insert({
       group_id: data.id, user_id: userId, role: 'owner',
     });
+    if (memberError) console.error('Group member insert error:', memberError);
 
     return { id: data.id, name: data.name, ownerId: data.owner_id, createdAt: data.created_at };
   });

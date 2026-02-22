@@ -32,12 +32,16 @@ export default function GroupsPage(): React.ReactElement {
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
     setCreating(true);
+    setError('');
     try {
       const group = await window.api.createGroup(newGroupName.trim());
       setGroups((prev) => [group, ...prev]);
       setNewGroupName('');
       setSelectedGroup(group);
-    } catch { setError('Grup oluşturulamadı'); }
+    } catch (err) {
+      console.error('Group create error:', err);
+      setError('Grup oluşturulamadı: ' + (err instanceof Error ? err.message : String(err)));
+    }
     setCreating(false);
   };
 
@@ -97,6 +101,7 @@ export default function GroupsPage(): React.ReactElement {
           </div>
 
           {/* Group list */}
+          {error && !selectedGroup && <p className="text-xs text-red-400">{error}</p>}
           <div className="flex flex-col gap-1.5 overflow-auto">
             {groups.length === 0 && (
               <p className="text-sm text-gray-400 dark:text-gray-600 text-center py-8">Henüz grup yok</p>
