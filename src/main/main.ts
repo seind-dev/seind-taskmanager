@@ -111,6 +111,11 @@ function createWindow(): void {
 
     // Auto-updater (checks GitHub Releases)
     initAutoUpdater(mainWindow!);
+
+    // Realtime: listen for task changes from other users
+    supabaseSync.subscribeRealtime(() => {
+      mainWindow?.webContents.send('tasks:updated');
+    });
   });
 }
 

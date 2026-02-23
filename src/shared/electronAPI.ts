@@ -60,6 +60,9 @@ export interface ElectronAPI {
 
   // Notifications
   onNotification(callback: (data: AppNotification) => void): () => void;
+
+  // Realtime task updates
+  onTasksUpdated(callback: () => void): () => void;
 }
 
 export interface AppNotification {

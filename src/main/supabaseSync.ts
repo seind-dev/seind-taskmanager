@@ -66,9 +66,21 @@ function taskToRow(task: Partial<Task> & { id?: string }) {
 
 export class SupabaseSync {
   private dataStore: DataStore;
+  private onChange?: () => void;
 
   constructor(dataStore: DataStore) {
     this.dataStore = dataStore;
+  }
+
+  /** Subscribe to Realtime changes on tasks table */
+  subscribeRealtime(onChange: () => void): void {
+    this.onChange = onChange;
+    supabase
+      .channel('tasks-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        this.onChange?.();
+      })
+      .subscribe();
   }
 
   /** Pull tasks from Supabase — RLS handles visibility */

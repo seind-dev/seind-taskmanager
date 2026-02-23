@@ -245,7 +245,11 @@ function App(): React.ReactElement {
     const unsub = window.api.onNotification(() => {
       setUnreadNotifCount((c) => c + 1);
     });
-    return () => { unsub(); };
+    // Listen for realtime task updates from other users
+    const unsubTasks = window.api.onTasksUpdated(() => {
+      loadTasks();
+    });
+    return () => { unsub(); unsubTasks(); };
   }, [loadTasks, authenticated]);
 
   useEffect(() => {

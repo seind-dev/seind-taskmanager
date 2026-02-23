@@ -65,6 +65,13 @@ const api: ElectronAPI = {
     ipcRenderer.on('notification:show', handler);
     return () => { ipcRenderer.removeListener('notification:show', handler); };
   },
+
+  // Realtime task updates
+  onTasksUpdated: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('tasks:updated', handler);
+    return () => { ipcRenderer.removeListener('tasks:updated', handler); };
+  },
 };
 
 contextBridge.exposeInMainWorld('api', api);
