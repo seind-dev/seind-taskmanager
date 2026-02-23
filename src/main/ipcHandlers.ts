@@ -9,6 +9,32 @@ import { signOut, getSession, supabase, getCurrentUserId, getDiscordOAuthUrl, se
 
 const notifStore = new Store({ name: 'notification-history' });
 
+/** Fetch Discord avatar from seind API, fallback to Supabase avatar */
+async function fetchDiscordAvatar(providerId: string, fallbackUrl: string): Promise<string> {
+  if (!providerId) return fallbackUrl;
+  try {
+    const resp = await fetch(`https://api.seind.dev/v1/user/${providerId}`);
+    if (resp.ok) {
+      const userData = await resp.json();
+      return userData?.avatar?.link || fallbackUrl;
+    }
+  } catch { /* ignore */ }
+  return fallbackUrl;
+}
+
+/** Get Discord info (name + avatar) for a user */
+async function getDiscordInfo(uid: string): Promise<{ discordName: string; avatarUrl: string }> {
+  try {
+    const { data: info } = await supabase.rpc('get_user_discord_info', { uid });
+    if (info && info.length > 0) {
+      const discordName = info[0].discord_name || '';
+      const avatarUrl = await fetchDiscordAvatar(info[0].provider_id || '', info[0].avatar_url || '');
+      return { discordName, avatarUrl };
+    }
+  } catch { /* ignore */ }
+  return { discordName: '', avatarUrl: '' };
+}
+
 /**
  * Registers all IPC handlers.
  * Uses SupabaseSync for task operations (cloud + local),
@@ -266,15 +292,7 @@ export function registerIpcHandlers(
     // Get Discord info for each member
     const members = [];
     for (const m of data || []) {
-      let discordName = '';
-      let avatarUrl = '';
-      try {
-        const { data: info } = await supabase.rpc('get_user_discord_info', { uid: m.user_id });
-        if (info && info.length > 0) {
-          discordName = info[0].discord_name || '';
-          avatarUrl = info[0].avatar_url || '';
-        }
-      } catch { /* ignore */ }
+      const { discordName, avatarUrl } = await getDiscordInfo(m.user_id);
       members.push({
         id: m.id, groupId: m.group_id, userId: m.user_id,
         role: m.role, joinedAt: m.joined_at,
@@ -328,15 +346,7 @@ export function registerIpcHandlers(
 
     const comments = [];
     for (const c of data || []) {
-      let discordName = '';
-      let avatarUrl = '';
-      try {
-        const { data: info } = await supabase.rpc('get_user_discord_info', { uid: c.user_id });
-        if (info && info.length > 0) {
-          discordName = info[0].discord_name || '';
-          avatarUrl = info[0].avatar_url || '';
-        }
-      } catch { /* ignore */ }
+      const { discordName, avatarUrl } = await getDiscordInfo(c.user_id);
       comments.push({
         id: c.id, taskId: c.task_id, userId: c.user_id,
         content: c.content, createdAt: c.created_at,
@@ -362,15 +372,7 @@ export function registerIpcHandlers(
       task_id: taskId, user_id: userId, action: 'commented', details: content.slice(0, 100),
     });
 
-    let discordName = '';
-    let avatarUrl = '';
-    try {
-      const { data: info } = await supabase.rpc('get_user_discord_info', { uid: userId });
-      if (info && info.length > 0) {
-        discordName = info[0].discord_name || '';
-        avatarUrl = info[0].avatar_url || '';
-      }
-    } catch { /* ignore */ }
+    const { discordName, avatarUrl } = await getDiscordInfo(userId);
 
     return {
       id: data.id, taskId: data.task_id, userId: data.user_id,
@@ -397,15 +399,7 @@ export function registerIpcHandlers(
 
     const activities = [];
     for (const a of data || []) {
-      let discordName = '';
-      let avatarUrl = '';
-      try {
-        const { data: info } = await supabase.rpc('get_user_discord_info', { uid: a.user_id });
-        if (info && info.length > 0) {
-          discordName = info[0].discord_name || '';
-          avatarUrl = info[0].avatar_url || '';
-        }
-      } catch { /* ignore */ }
+      const { discordName, avatarUrl } = await getDiscordInfo(a.user_id);
       activities.push({
         id: a.id, taskId: a.task_id, userId: a.user_id,
         action: a.action, details: a.details, createdAt: a.created_at,

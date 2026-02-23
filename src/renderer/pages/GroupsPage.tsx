@@ -11,6 +11,7 @@ export default function GroupsPage(): React.ReactElement {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
   const loadGroups = async () => {
     const data = await window.api.getGroups();
@@ -22,7 +23,10 @@ export default function GroupsPage(): React.ReactElement {
     setMembers(data);
   };
 
-  useEffect(() => { loadGroups(); }, []);
+  useEffect(() => {
+    loadGroups();
+    window.api.getSession().then((s) => { if (s) setCurrentUserId(s.userId); }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (selectedGroup) loadMembers(selectedGroup.id);
@@ -129,6 +133,7 @@ export default function GroupsPage(): React.ReactElement {
                   onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
                   className="text-gray-400 hover:text-red-400 transition-colors flex-shrink-0"
                   aria-label="Grubu sil"
+                  style={{ display: group.ownerId === currentUserId ? undefined : 'none' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -149,7 +154,8 @@ export default function GroupsPage(): React.ReactElement {
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">{selectedGroup.name}</h2>
 
-              {/* Add member by Discord username */}
+              {/* Add member by Discord username (owner only) */}
+              {selectedGroup.ownerId === currentUserId && (
               <div className="flex gap-2 mb-4">
                 <input
                   type="text"
@@ -168,6 +174,7 @@ export default function GroupsPage(): React.ReactElement {
                   {adding ? '...' : 'Ekle'}
                 </button>
               </div>
+              )}
 
               {error && selectedGroup && <p className="text-xs text-red-400 mb-3">{error}</p>}
               {success && <p className="text-xs text-emerald-400 mb-3">{success}</p>}
@@ -192,7 +199,7 @@ export default function GroupsPage(): React.ReactElement {
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium">Kurucu</span>
                       )}
                     </div>
-                    {member.role !== 'owner' && (
+                    {member.role !== 'owner' && selectedGroup.ownerId === currentUserId && (
                       <button
                         onClick={() => handleRemoveMember(member.userId)}
                         className="text-gray-400 hover:text-red-400 transition-colors"
